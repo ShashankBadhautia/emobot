@@ -33,9 +33,9 @@
 // #define TOUCH_BACK -1
 
 // ---------------- SERVO PINS ----------------
-#define HEAD_SERVO_PIN 3
-#define LEFT_SERVO_PIN 4
-#define RIGHT_SERVO_PIN 5
+#define HEAD_SERVO_PIN 16
+#define LEFT_SERVO_PIN 17
+#define RIGHT_SERVO_PIN 18
 
 // ---------------- IDLE ----------------
 unsigned long lastActivityTime = 0;
@@ -44,6 +44,8 @@ bool idle = false;
 //--------------- CLIFF --------------------
 bool cliffCheckActive = false;
 unsigned long cliffStartTime = 0;
+
+bool idleAnimationStarted = false;
 
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
@@ -179,11 +181,11 @@ void handleCommand(const String &cmd) {
 TouchSensor headTouch(TOUCH_HEAD);
 // TouchSensor backTouch(TOUCH_BACK);
 
-GyroSensor gyro;
+// GyroSensor gyro;                                       gyro snesor
 
-IRSensor front(IR_FRONT);
-IRSensor frontLeft(IR_FRONT_LEFT);
-IRSensor frontRight(IR_FRONT_RIGHT);
+// IRSensor front(IR_FRONT);
+// IRSensor frontLeft(IR_FRONT_LEFT);
+// IRSensor frontRight(IR_FRONT_RIGHT);
 IRSensor backLeft(IR_BACK_LEFT);
 IRSensor backRight(IR_BACK_RIGHT);
 IRSensor bottom(IR_BOTTOM);
@@ -201,9 +203,9 @@ void registerActivity() {
 }
 
 void checkIdleTimer() {
-  if (millis() - lastActivityTime > 60000) {
+  if (!idle && millis() - lastActivityTime > 60000) {
     idle = true;
-    handleCommand("idle");
+    idleAnimationStarted = false;  // allow idle animation to start once
   }
 }
 //---------------------------------------------------------
@@ -246,97 +248,211 @@ void handleCliffLogic() {
 // --------------------------------------------------------
 // SETUP
 // --------------------------------------------------------
+// void setup() {
+//   Serial.begin(115200);
+//   Wire.begin(SDA_PIN, SCL_PIN);
+
+//   display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
+//   display.clearDisplay();
+//   display.display();
+//   delay(100);
+
+//   gyro.begin();
+//   gyro.calibrate();
+
+//   servos.begin(HEAD_SERVO_PIN, LEFT_SERVO_PIN, RIGHT_SERVO_PIN);
+
+//   startAnimation(nullptr, 0, emo_idleallArray, emo_idleallArray_LEN, true);
+//   lastActivityTime = millis();
+// }
+
+// --------------------------------------------------------
+// LOOP
+// --------------------------------------------------------
+// void loop() {
+//   headTouch.update();
+//   // backTouch.update();
+
+//   front.update();
+//   frontLeft.update();
+//   frontRight.update();
+//   backLeft.update();
+//   backRight.update();
+//   bottom.update();
+//   // head.update();
+
+//   gyro.update();
+//   servos.update();
+
+//   bool activity =
+//       headTouch.singleTap() || headTouch.doubleTap() || headTouch.longPress() ||
+//       gyro.tilt || gyro.shake ;
+
+//   if (activity) {
+//     registerActivity();
+//     stopMotor();
+//     servos.centerHead();
+//   }
+
+//   if (headTouch.singleTap()) { handleCommand("happy"); servos.happyReaction(); }
+//   if (headTouch.doubleTap()) { handleCommand("surprised"); servos.surprisedReaction(); }
+//   if (headTouch.longPress()) { handleCommand("pat"); servos.patReaction(); }
+//   // if (backTouch.singleTap()) { handleCommand("happy"); servos.happyReaction(); }
+//   // if (backTouch.longPress()) { handleCommand("pat"); servos.patReaction(); }
+
+//   if (gyro.shake) { handleCommand("dizzy"); servos.dizzyReaction(); }
+//   if (gyro.tilt)  { handleCommand("sad");   servos.sadReaction(); }
+
+//   if (!idle) {
+//     if (front.isFast()) {
+//         handleCommand("surprised");
+//         servos.surprisedReaction();
+//     }
+//   }
+
+//   if (idle) {
+//     handleCliffLogic();
+//     if (cliffCheckActive) return;
+
+//     servos.centerHead();
+
+//     if (front.isObjectDetected() || frontLeft.isObjectDetected() || frontRight.isObjectDetected()) {
+//       stopMotor();
+//       if (frontLeft.isObjectDetected()) turnRight();
+//       else if (frontRight.isObjectDetected()) turnLeft();
+//       else turnLeft();
+//     }
+//     else if (backLeft.isObjectDetected() || backRight.isObjectDetected()) {
+//       forwardBoth();
+//     }
+//     else {
+//       static unsigned long nextMoveTime = 0;
+//       unsigned long now = millis();
+//       if (now > nextMoveTime) {
+//         int r = random(0, 10);
+//         if (r < 6) forwardBoth();
+//         else if (r == 6) turnLeft();
+//         else if (r == 7) turnRight();
+//         else stopMotor();
+//         nextMoveTime = now + random(800, 2000);
+//       }
+//     }
+//   }
+
+//   updateAnimation();
+//   checkIdleTimer();
+// }
+
 void setup() {
   Serial.begin(115200);
   Wire.begin(SDA_PIN, SCL_PIN);
+  delay(200);
 
   display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
   display.clearDisplay();
   display.display();
   delay(100);
 
-  gyro.begin();
-  gyro.calibrate();
+  // gyro.begin();                        gyro
+  // gyro.calibrate();                    gyro
 
   servos.begin(HEAD_SERVO_PIN, LEFT_SERVO_PIN, RIGHT_SERVO_PIN);
 
   startAnimation(nullptr, 0, emo_idleallArray, emo_idleallArray_LEN, true);
   lastActivityTime = millis();
+  idle = false;   // start ACTIVE so touch works at boot
+  idleAnimationStarted = false;
 }
 
-// --------------------------------------------------------
-// LOOP
-// --------------------------------------------------------
 void loop() {
   headTouch.update();
   // backTouch.update();
 
-  front.update();
-  frontLeft.update();
-  frontRight.update();
-  backLeft.update();
-  backRight.update();
-  bottom.update();
+  // front.update();
+  // frontLeft.update();
+  // frontRight.update();
+  // backLeft.update();
+  // backRight.update();
+  // bottom.update();
   // head.update();
 
-  gyro.update();
-  servos.update();
+  // gyro.update();
+  // servos.update();
 
-  bool activity =
-      headTouch.singleTap() || headTouch.doubleTap() || headTouch.longPress() ||
-      gyro.tilt || gyro.shake ;
+//   bool activity =
+//         headTouch.singleTap() || headTouch.doubleTap() || headTouch.longPress();
 
-  if (activity) {
-    registerActivity();
-    stopMotor();
-    servos.centerHead();
+//   if (activity){
+//     registerActivity();        // sets idle = false
+//     idleAnimationStarted = false;
+// }
+
+
+  // if (backLeft.isObjectDetected() ){
+  //   handleCommand("happy");
+  //   // servos.happyReaction();
+  //   }
+  // else if (backRight.isObjectDetected()){
+  //   handleCommand("sad");
+  //   // servos.sadReaction();
+  //   }
+  // else 
+  if (headTouch.longPress()){
+    handleCommand("pat");
+    // servos.patReaction();
+    }
+  else if (headTouch.doubleTap()){
+    handleCommand("dizzy");
+    // servos.dizzyReaction();
+    }
+  else if (headTouch.singleTap()){
+    handleCommand("happy");
   }
 
-  if (headTouch.singleTap()) { handleCommand("happy"); servos.happyReaction(); }
-  if (headTouch.doubleTap()) { handleCommand("surprised"); servos.surprisedReaction(); }
-  if (headTouch.longPress()) { handleCommand("pat"); servos.patReaction(); }
-  // if (backTouch.singleTap()) { handleCommand("happy"); servos.happyReaction(); }
-  // if (backTouch.longPress()) { handleCommand("pat"); servos.patReaction(); }
-
-  if (gyro.shake) { handleCommand("dizzy"); servos.dizzyReaction(); }
-  if (gyro.tilt)  { handleCommand("sad");   servos.sadReaction(); }
-
-  if (!idle) {
-    if (front.isFast()) {
-        handleCommand("surprised");
-        servos.surprisedReaction();
-    }
-  }
-
-  if (idle) {
-    handleCliffLogic();
-    if (cliffCheckActive) return;
-
-    servos.centerHead();
-
-    if (front.isObjectDetected() || frontLeft.isObjectDetected() || frontRight.isObjectDetected()) {
-      stopMotor();
-      if (frontLeft.isObjectDetected()) turnRight();
-      else if (frontRight.isObjectDetected()) turnLeft();
-      else turnLeft();
-    }
-    else if (backLeft.isObjectDetected() || backRight.isObjectDetected()) {
-      forwardBoth();
-    }
-    else {
-      static unsigned long nextMoveTime = 0;
-      unsigned long now = millis();
-      if (now > nextMoveTime) {
-        int r = random(0, 10);
-        if (r < 6) forwardBoth();
-        else if (r == 6) turnLeft();
-        else if (r == 7) turnRight();
-        else stopMotor();
-        nextMoveTime = now + random(800, 2000);
-      }
-    }
-  }
+  // if (idle) {
+  //   if (!idleAnimationStarted) {
+  //       handleCommand("idle");
+  //       idleAnimationStarted = true;
+  //   }
+  // }
 
   updateAnimation();
-  checkIdleTimer();
+  // checkIdleTimer();
 }
+// void loop() {
+//   headTouch.update();
+//   servos.update();
+
+//   bool activity =
+//         headTouch.singleTap() || headTouch.doubleTap() || headTouch.longPress();
+
+//   if (activity){
+//     Serial.println("activity detected");
+//     registerActivity();         // sets idle = false
+//     idleAnimationStarted = false;
+//   }
+
+//   if (!idle){
+//       if (headTouch.longPress()){
+//           handleCommand("pat");
+//           Serial.println("longpress");
+//       }
+//       else if (headTouch.doubleTap()){
+//           handleCommand("dizzy");
+//       }
+//       // else if (headTouch.singleTap()){
+//       //     handleCommand("happy");
+//       // }
+//   }
+
+//   if (idle) {
+//       if (!idleAnimationStarted) {
+//           handleCommand("idle");
+//           idleAnimationStarted = true;
+//           Serial.println("bruh get out");
+//       }
+//   }
+
+//   updateAnimation();
+//   checkIdleTimer();
+// }
